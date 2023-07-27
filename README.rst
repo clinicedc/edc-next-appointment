@@ -5,7 +5,7 @@ edc-next-appointment
 
 Base classes for managing next appointment CRF at each timepoint
 
-Declare in your app as a longitudinal model.
+Declare in your app as a longitudinal model / CRF.
 
 For example:
 
@@ -26,6 +26,7 @@ For example:
         class Meta:
             model = NextAppointment
             fields = "__all__"
+
 
     # admin.py
     @admin.register(NextAppointment, site=intecomm_subject_admin)
