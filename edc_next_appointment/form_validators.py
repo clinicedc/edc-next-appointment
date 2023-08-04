@@ -28,7 +28,7 @@ class NextAppointmentFormValidatorMixin(CrfFormValidator):
                 self._health_facility = self.cleaned_data.get("health_facility")
             else:
                 raise self.raise_validation_error(
-                    {"health_facility": "This field is required."}
+                    {"health_facility": "This field is required."}, INVALID_ERROR
                 )
         return self._health_facility
 
