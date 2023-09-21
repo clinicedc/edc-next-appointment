@@ -1,37 +1,69 @@
+from __future__ import annotations
+
+import calendar
+from typing import TYPE_CHECKING
+
+from django.utils.translation import gettext_lazy as _
 from edc_form_validators import INVALID_ERROR
+
+from ..utils import allow_clinic_on_weekend
+
+if TYPE_CHECKING:
+    from edc_facility.models import HealthFacility
 
 
 class NextAppointmentFormValidatorMixin:
     def __init__(self, **kwargs):
         self._clinic_days = None
+        self._health_facility = None
+        self.day_abbr = calendar.weekheader(3).split(" ")
         super().__init__(**kwargs)
 
     @property
     def clinic_days(self) -> list[int]:
         if not self._clinic_days:
             if self.cleaned_data.get("health_facility"):
-                self._clinic_days = self.cleaned_data.get("health_facility").clinic_days
+                self._clinic_days = self.health_facility.clinic_days
         return self._clinic_days
 
     def validate_date_is_on_clinic_day(self):
         if appt_date := self.cleaned_data.get("appt_date"):
-            if appt_date.isoweekday() > 5:
-                day = "Sat" if appt_date.isoweekday() == 6 else "Sun"
-                raise self.raise_validation_error(
-                    {"appt_date": f"Expected Mon-Fri. Got {day}"},
-                    INVALID_ERROR,
-                )
-        if appt_date and self.cleaned_data.get("subject_visit").site:
-            if self.clinic_days and appt_date.isoweekday() not in self.clinic_days:
-                dct = dict(zip([1, 2, 3, 4, 5, 6, 7], ["M", "T", "W", "Th", "F", "Sa", "Su"]))
-                expected_days = [v for k, v in dct.items() if k in self.clinic_days]
+            if not allow_clinic_on_weekend() and appt_date.weekday() > calendar.FRIDAY:
                 raise self.raise_validation_error(
                     {
-                        "appt_date": (
-                            "Invalid clinic day. "
-                            f"Expected {''.join(expected_days)}. "
-                            f"Got {appt_date.strftime('%A')}"
-                        )
+                        "appt_date": _("Expected %(mon)s-%(fri)s. Got %(day)s")
+                        % {
+                            "mon": self.day_abbr[calendar.MONDAY],
+                            "fri": self.day_abbr[calendar.FRIDAY],
+                            "day": self.day_abbr[appt_date.weekday()],
+                        }
                     },
                     INVALID_ERROR,
                 )
+            elif self.cleaned_data.get("subject_visit").site:
+                if self.clinic_days and appt_date.weekday() not in self.clinic_days:
+                    raise self.raise_validation_error(
+                        {
+                            "appt_date": _(
+                                "Invalid clinic day. Expected %(expected)s. Got %(day_abbr)s"
+                            )
+                            % {
+                                "expected": ", ".join(
+                                    dict(zip(self.clinic_days, self.day_abbr)).values()
+                                ),
+                                "day_abbr": appt_date.strftime("%A"),
+                            }
+                        },
+                        INVALID_ERROR,
+                    )
+
+    @property
+    def health_facility(self) -> HealthFacility | None:
+        if not self._health_facility:
+            if self.cleaned_data.get("health_facility"):
+                self._health_facility = self.cleaned_data.get("health_facility")
+            else:
+                raise self.raise_validation_error(
+                    {"health_facility": _("This field is required.")}, INVALID_ERROR
+                )
+        return self._health_facility

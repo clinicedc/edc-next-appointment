@@ -4,18 +4,14 @@ from dateutil.relativedelta import relativedelta
 from django.conf import settings
 
 
-def get_max_rdelta_to_next_appointment():
-    max_months = settings.INTECOMM_MAX_MONTHS_TO_NEXT_APPT
+def get_max_months_to_next_appointment():
+    return getattr(settings, "EDC_NEXT_APPOINTMENT_MAX_MONTHS_TO_NEXT_APPT", 6)
+
+
+def get_max_months_to_next_appointment_as_rdelta():
+    max_months = get_max_months_to_next_appointment()
     return relativedelta(months=max_months)
 
 
-# def visit_code_choices() -> tuple[tuple[str, str]]:
-#     visit_codes = list[str]
-#     for visit_schedule in site_visit_schedules.visit_schedules.values():
-#         for schedule in visit_schedule.schedules:
-#             visit_codes.extend([v.code for v in schedule.visits])
-#     # codes = ["1000"]
-#     # for i in range(1, 13):
-#     #     codes.append(get_visit_code(i))
-#     # return tuple([(code, code) for code in codes])
-#     return tuple([(code, code) for code in visit_codes])
+def allow_clinic_on_weekend():
+    return getattr(settings, "EDC_NEXT_APPOINTMENT_ALLOW_CLINIC_ON_WEEKENDS", False)

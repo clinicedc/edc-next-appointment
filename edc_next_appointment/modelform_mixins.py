@@ -5,7 +5,8 @@ from zoneinfo import ZoneInfo
 
 from django import forms
 from django.conf import settings
-from edc_appointment.constants import MISSED_APPT, NEW_APPT
+from django.utils.translation import gettext_lazy as _
+from edc_appointment.constants import NEW_APPT, SKIPPED_APPT
 from edc_appointment.utils import get_appointment_by_datetime
 from edc_utils import convert_php_dateformat
 from edc_utils.date import to_local
@@ -16,16 +17,20 @@ class NextAppointmentModelFormMixin:
     def clean(self):
         cleaned_data = super().clean()
         self.validate_appt_date_with_next()
-        self.validate_best_visit_code()
+        self.validate_best_next_visit_code()
         return cleaned_data
 
+    @property
+    def next_appt_date(self) -> date | None:
+        return self.cleaned_data.get("appt_date")
+
     def validate_appt_date_with_next(self):
-        if (
-            self.related_visit.appointment.next.appt_status != NEW_APPT
-            and self.related_visit.appointment.next.appt_timing != MISSED_APPT
-        ):
+        if self.next_appt_date and self.related_visit.appointment.next.appt_status not in [
+            NEW_APPT,
+            SKIPPED_APPT,
+        ]:
             if (
-                self.cleaned_data.get("appt_date")
+                self.next_appt_date
                 != to_local(self.related_visit.appointment.next.appt_datetime).date()
             ):
                 next_appt = self.related_visit.appointment.next
@@ -33,34 +38,43 @@ class NextAppointmentModelFormMixin:
                 next_appt_date = to_local(next_appt.appt_datetime).date().strftime(date_format)
                 raise forms.ValidationError(
                     {
-                        "appt_date": (
-                            f"Invalid. Next visit report already submitted. Expected "
-                            f"`{next_appt_date}`. See {next_appt.visit_code}."
+                        "appt_date": _(
+                            "Invalid. Next visit report already submitted. Expected "
+                            "`%(next_appt_date)s`. See `%(next_appt_visit_code)s`."
                         )
+                        % {
+                            "next_appt_date": next_appt_date,
+                            "next_appt_visit_code": next_appt.visit_code,
+                        }
                     }
                 )
 
         if (
-            self.cleaned_data.get("appt_date")
-            and self.related_visit.appointment.next.appt_status != NEW_APPT
-            and self.related_visit.appointment.next.appt_timing != MISSED_APPT
-            and self.cleaned_data.get("appt_date")
+            self.next_appt_date
+            and self.related_visit.appointment.next.appt_status not in [NEW_APPT, SKIPPED_APPT]
+            and self.next_appt_date
             > to_local(self.related_visit.appointment.next.appt_datetime).date()
         ):
             next_appt = self.related_visit.appointment.next
             date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
             raise forms.ValidationError(
                 {
-                    "appt_date": (
-                        f"Invalid. Expected a date before next appointment "
-                        f"{next_appt.visit_code} on "
-                        f"{to_local(next_appt.appt_datetime).date().strftime(date_format)}."
+                    "appt_date": _(
+                        "Invalid. Expected a date before next appointment "
+                        "`%(next_appt_visit_code)s` on "
+                        f"%(next_appt_date_str)s."
                     )
+                    % {
+                        "next_appt_visit_code": next_appt.visit_code,
+                        "next_appt_date_str": to_local(next_appt.appt_datetime)
+                        .date()
+                        .strftime(date_format),
+                    }
                 }
             )
 
-    def validate_best_visit_code(self):
-        if appt_date := self.cleaned_data.get("appt_date"):
+    def validate_best_next_visit_code(self):
+        if appt_date := self.next_appt_date:
             subject_visit = self.cleaned_data.get("subject_visit")
             try:
                 appointment = get_appointment_by_datetime(
@@ -74,13 +88,16 @@ class NextAppointmentModelFormMixin:
                 raise forms.ValidationError({"appt_date": str(e)})
             if not appointment:
                 raise forms.ValidationError(
-                    {"appt_date": "Invalid. Must be within the followup period."}
+                    {"appt_date": _("Invalid. Must be within the followup period.")}
                 )
             elif appointment == subject_visit.appointment:
                 raise forms.ValidationError(
                     {
                         "appt_date": (
-                            "Invalid. Cannot be within window period of current appointment."
+                            _(
+                                "Invalid. Cannot be within window period "
+                                "of current appointment."
+                            )
                         )
                     }
                 )
@@ -92,10 +109,13 @@ class NextAppointmentModelFormMixin:
                 date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
                 raise forms.ValidationError(
                     {
-                        "visitschedule": (
-                            f"Expected {appointment.visit_code} "
-                            f"using {appt_date.strftime(date_format)} from above."
+                        "visitschedule": _(
+                            "Expected %(visit_code)s using %(appt_date_str)s from above."
                         )
+                        % {
+                            "visit_code": appointment.visit_code,
+                            "appt_date_str": appt_date.strftime(date_format),
+                        }
                     }
                 )
 
