@@ -62,7 +62,7 @@ class NextAppointmentModelFormMixin:
                     "appt_date": _(
                         "Invalid. Expected a date before next appointment "
                         "`%(next_appt_visit_code)s` on "
-                        f"%(next_appt_date_str)s."
+                        "%(next_appt_date_str)s."
                     )
                     % {
                         "next_appt_visit_code": next_appt.visit_code,

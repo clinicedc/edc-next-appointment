@@ -1,5 +1,3 @@
-import uuid
-
 from django.db import models
 from edc_consent.field_mixins import PersonalFieldsMixin
 from edc_consent.field_mixins.identity_fields_mixin import IdentityFieldsMixin
