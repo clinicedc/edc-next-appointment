@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import logging
 import os
+from datetime import datetime
 from os.path import abspath, dirname
+from zoneinfo import ZoneInfo
 
 from edc_test_utils import DefaultTestSettings, func_main
 
@@ -14,7 +16,9 @@ project_settings = DefaultTestSettings(
     APP_NAME=app_name,
     ETC_DIR=os.path.join(base_dir, app_name, "tests", "etc"),
     SUBJECT_VISIT_MODEL="edc_visit_tracking.subjectvisit",
-    SUBJECT_VISIT_MISSED_MODEL="visit_schedule_app.subjectvisitmissed",
+    SUBJECT_VISIT_MISSED_MODEL="edc_visit_tracking.subjectvisitmissed",
+    EDC_PROTOCOL_STUDY_OPEN_DATETIME=datetime(2018, 1, 1, 0, 0, tzinfo=ZoneInfo("utc")),
+    EDC_PROTOCOL_STUDY_CLOSE_DATETIME=datetime(2023, 1, 1, 0, 0, tzinfo=ZoneInfo("utc")),
     INSTALLED_APPS=[
         "django.contrib.admin",
         "django.contrib.auth",

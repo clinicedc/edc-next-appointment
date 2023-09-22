@@ -1,5 +1,3 @@
-import uuid
-
 from django.db import models
 from edc_consent.field_mixins import PersonalFieldsMixin
 from edc_consent.field_mixins.identity_fields_mixin import IdentityFieldsMixin
@@ -16,6 +14,8 @@ from edc_sites.models import SiteModelMixin
 from edc_visit_schedule.model_mixins import OffScheduleModelMixin, OnScheduleModelMixin
 from edc_visit_tracking.model_mixins import VisitTrackingCrfModelMixin
 from edc_visit_tracking.models import SubjectVisit
+
+from edc_next_appointment.model_mixins import NextAppointmentCrfModelMixin
 
 
 class OnSchedule(SiteModelMixin, OnScheduleModelMixin, BaseUuidModel):
@@ -56,10 +56,8 @@ class BaseCrfModel(
     models.Model,
 ):
     subject_visit = models.OneToOneField(
-        SubjectVisit, on_delete=models.PROTECT, related_name="next_appointment_subjectvisit"
+        SubjectVisit, on_delete=models.PROTECT, related_name="+"
     )
-
-    f1 = models.CharField(max_length=50, default=uuid.uuid4)
 
     class Meta:
         abstract = True
@@ -67,3 +65,7 @@ class BaseCrfModel(
 
 class CrfOne(BaseCrfModel, BaseUuidModel):
     f1 = models.CharField(max_length=50, null=True)
+
+
+class NextAppointment(NextAppointmentCrfModelMixin, BaseCrfModel, BaseUuidModel):
+    pass
