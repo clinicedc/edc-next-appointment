@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from django.utils.translation import gettext_lazy as _
 from edc_form_validators import INVALID_ERROR
+from edc_utils.date import to_local
 
 from ..utils import allow_clinic_on_weekend
 
@@ -28,6 +29,10 @@ class NextAppointmentFormValidatorMixin:
 
     def validate_date_is_on_clinic_day(self):
         if appt_date := self.cleaned_data.get("appt_date"):
+            if appt_date <= to_local(self.cleaned_data.get("report_datetime")).date():
+                raise self.raise_validation_error(
+                    {"appt_date": "Cannot be on or before the report datetime"}, INVALID_ERROR
+                )
             if not allow_clinic_on_weekend() and appt_date.weekday() > calendar.FRIDAY:
                 raise self.raise_validation_error(
                     {
