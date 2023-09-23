@@ -4,6 +4,7 @@ import calendar
 from typing import TYPE_CHECKING
 
 from django.utils.translation import gettext_lazy as _
+from edc_appointment.utils import get_allow_skipped_appt_using
 from edc_form_validators import INVALID_ERROR
 from edc_utils.date import to_local
 
@@ -19,6 +20,14 @@ class NextAppointmentFormValidatorMixin:
         self._health_facility = None
         self.day_abbr = calendar.weekheader(3).split(" ")
         super().__init__(**kwargs)
+
+    @property
+    def visit_code_fld(self):
+        return get_allow_skipped_appt_using().get(self._meta.model._meta.label_lower)[1]
+
+    @property
+    def dt_fld(self):
+        return get_allow_skipped_appt_using().get(self._meta.model._meta.label_lower)[1]
 
     @property
     def clinic_days(self) -> list[int]:

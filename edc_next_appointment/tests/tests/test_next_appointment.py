@@ -5,7 +5,7 @@ import time_machine
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.test import TestCase, override_settings, tag
+from django.test import TestCase, override_settings
 from edc_appointment.constants import SKIPPED_APPT
 from edc_appointment.models import Appointment
 from edc_constants.constants import NOT_APPLICABLE, PATIENT
@@ -63,9 +63,9 @@ class TestNextAppointment(TestCase):
         )
 
     @override_settings(
-        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING=[
-            ("next_appointment_app.nextappointment", "appt_date")
-        ]
+        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING={
+            "next_appointment_app.nextappointment": ("appt_date", "visitschedule")
+        }
     )
     @time_machine.travel(dt.datetime(2019, 6, 11, 8, 00, tzinfo=utc))
     def test_ok(self):
@@ -74,11 +74,10 @@ class TestNextAppointment(TestCase):
         subject_visit_model_cls = get_related_visit_model_cls()
         subject_visit_model_cls.objects.create(appointment=appointment, reason=SCHEDULED)
 
-    @tag("1")
     @override_settings(
-        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING=[
-            ("next_appointment_app.nextappointment", "appt_date")
-        ]
+        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING={
+            "next_appointment_app.nextappointment": ("appt_date", "visitschedule")
+        }
     )
     @time_machine.travel(dt.datetime(2019, 6, 11, 8, 00, tzinfo=utc))
     def test_next_appt_ok(self):
@@ -95,8 +94,8 @@ class TestNextAppointment(TestCase):
             subject_visit=subject_visit,
             report_datetime=subject_visit.report_datetime,
             appt_date=(appointment.appt_datetime + relativedelta(months=3)).date(),
-            info_source=InfoSources.objects.get(name=PATIENT),
             visitschedule=VisitSchedule.objects.get(visit_code="1000"),
+            info_source=InfoSources.objects.get(name=PATIENT),
         )
         form = NextAppointmentForm(data=data)
         form.is_valid()
@@ -135,9 +134,9 @@ class TestNextAppointment(TestCase):
         self.assertEqual(apppointment.appt_timing, NOT_APPLICABLE)
 
     @override_settings(
-        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING=[
-            ("next_appointment_app.nextappointment", "appt_date")
-        ]
+        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING={
+            "next_appointment_app.nextappointment": ("appt_date", "visitschedule")
+        }
     )
     @time_machine.travel(dt.datetime(2019, 6, 11, 8, 00, tzinfo=utc))
     def test_next_appt_with_health_facility(self):
@@ -196,11 +195,10 @@ class TestNextAppointment(TestCase):
         form.is_valid()
         self.assertEqual({}, form._errors)
 
-    @tag("1")
     @override_settings(
-        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING=[
-            ("next_appointment_app.nextappointment", "appt_date")
-        ],
+        EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING={
+            "next_appointment_app.nextappointment": ("appt_date", "visitschedule")
+        },
         LANGUAGE_CODE="sw",
     )
     @time_machine.travel(dt.datetime(2019, 6, 11, 8, 00, tzinfo=utc_tz))
