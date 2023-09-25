@@ -16,21 +16,29 @@ from edc_visit_schedule.schedule.window import ScheduledVisitWindowError
 class NextAppointmentModelFormMixin:
     def clean(self):
         cleaned_data = super().clean()
-        self.validate_appt_date_with_next()
-        self.validate_best_next_visit_code()
+        self.validate_suggested_date_with_future_appointments()
+        self.validate_suggested_visit_code()
         return cleaned_data
 
     @property
-    def next_appt_date(self) -> date | None:
+    def suggested_date(self) -> date | None:
         return self.cleaned_data.get("appt_date")
 
-    def validate_appt_date_with_next(self):
-        if self.next_appt_date and self.related_visit.appointment.next.appt_status not in [
+    @property
+    def suggested_visit_code(self) -> str | None:
+        return getattr(
+            self.cleaned_data.get("visitschedule"),
+            "visit_code",
+            self.cleaned_data.get("visitschedule"),
+        )
+
+    def validate_suggested_date_with_future_appointments(self):
+        if self.suggested_date and self.related_visit.appointment.next.appt_status not in [
             NEW_APPT,
             SKIPPED_APPT,
         ]:
             if (
-                self.next_appt_date
+                self.suggested_date
                 != to_local(self.related_visit.appointment.next.appt_datetime).date()
             ):
                 next_appt = self.related_visit.appointment.next
@@ -40,19 +48,19 @@ class NextAppointmentModelFormMixin:
                     {
                         "appt_date": _(
                             "Invalid. Next visit report already submitted. Expected "
-                            "`%(next_appt_date)s`. See `%(next_appt_visit_code)s`."
+                            "`%(dt)s`. See `%(visit_code)s`."
                         )
                         % {
-                            "next_appt_date": next_appt_date,
-                            "next_appt_visit_code": next_appt.visit_code,
+                            "dt": next_appt_date,
+                            "visit_code": next_appt.visit_code,
                         }
                     }
                 )
 
         if (
-            self.next_appt_date
+            self.suggested_date
             and self.related_visit.appointment.next.appt_status not in [NEW_APPT, SKIPPED_APPT]
-            and self.next_appt_date
+            and self.suggested_date
             > to_local(self.related_visit.appointment.next.appt_datetime).date()
         ):
             next_appt = self.related_visit.appointment.next
@@ -60,25 +68,25 @@ class NextAppointmentModelFormMixin:
             raise forms.ValidationError(
                 {
                     "appt_date": _(
-                        "Invalid. Expected a date before next appointment "
-                        "`%(next_appt_visit_code)s` on "
-                        "%(next_appt_date_str)s."
+                        "Invalid. Expected a date before appointment "
+                        "`%(visit_code)s` on "
+                        "%(dt_str)s."
                     )
                     % {
-                        "next_appt_visit_code": next_appt.visit_code,
-                        "next_appt_date_str": to_local(next_appt.appt_datetime)
+                        "visit_code": next_appt.visit_code,
+                        "dt_str": to_local(next_appt.appt_datetime)
                         .date()
                         .strftime(date_format),
                     }
                 }
             )
 
-    def validate_best_next_visit_code(self):
-        if appt_date := self.next_appt_date:
+    def validate_suggested_visit_code(self):
+        if suggested_date := self.suggested_date:
             subject_visit = self.cleaned_data.get("subject_visit")
             try:
                 appointment = get_appointment_by_datetime(
-                    self.as_appt_datetime(appt_date),
+                    self.as_datetime(suggested_date),
                     subject_identifier=subject_visit.subject_identifier,
                     visit_schedule_name=subject_visit.visit_schedule.name,
                     schedule_name=subject_visit.schedule.name,
@@ -103,30 +111,22 @@ class NextAppointmentModelFormMixin:
                 )
 
             if (
-                self.cleaned_data.get("visitschedule")
-                and self.cleaned_data.get("visitschedule").visit_code != appointment.visit_code
+                self.suggested_visit_code
+                and self.suggested_visit_code != appointment.visit_code
             ):
                 date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
                 raise forms.ValidationError(
                     {
                         "visitschedule": _(
-                            "Expected %(visit_code)s using %(appt_date_str)s from above."
+                            "Expected %(visit_code)s using %(dt_str)s from above."
                         )
                         % {
                             "visit_code": appointment.visit_code,
-                            "appt_date_str": appt_date.strftime(date_format),
+                            "dt_str": suggested_date.strftime(date_format),
                         }
                     }
                 )
 
     @staticmethod
-    def as_appt_datetime(appt_date: date) -> datetime:
-        return datetime(
-            appt_date.year,
-            appt_date.month,
-            appt_date.day,
-            23,
-            59,
-            59,
-            tzinfo=ZoneInfo("UTC"),
-        )
+    def as_datetime(dt: date) -> datetime:
+        return datetime(dt.year, dt.month, dt.day, 23, 59, 59, tzinfo=ZoneInfo("UTC"))

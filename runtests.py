@@ -17,8 +17,8 @@ project_settings = DefaultTestSettings(
     ETC_DIR=os.path.join(base_dir, app_name, "tests", "etc"),
     SUBJECT_VISIT_MODEL="edc_visit_tracking.subjectvisit",
     SUBJECT_VISIT_MISSED_MODEL="edc_visit_tracking.subjectvisitmissed",
-    EDC_PROTOCOL_STUDY_OPEN_DATETIME=datetime(2018, 1, 1, 0, 0, tzinfo=ZoneInfo("utc")),
-    EDC_PROTOCOL_STUDY_CLOSE_DATETIME=datetime(2023, 1, 1, 0, 0, tzinfo=ZoneInfo("utc")),
+    EDC_PROTOCOL_STUDY_OPEN_DATETIME=datetime(2018, 1, 1, 0, 0, tzinfo=ZoneInfo("UTC")),
+    EDC_PROTOCOL_STUDY_CLOSE_DATETIME=datetime(2023, 1, 1, 0, 0, tzinfo=ZoneInfo("UTC")),
     INSTALLED_APPS=[
         "django.contrib.admin",
         "django.contrib.auth",
