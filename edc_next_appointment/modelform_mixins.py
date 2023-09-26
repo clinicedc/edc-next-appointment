@@ -6,8 +6,8 @@ from zoneinfo import ZoneInfo
 from django import forms
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from edc_appointment.constants import NEW_APPT, SKIPPED_APPT
 from edc_appointment.utils import get_appointment_by_datetime
+from edc_metadata.utils import has_keyed_metadata
 from edc_utils import convert_php_dateformat
 from edc_utils.date import to_local
 from edc_visit_schedule.schedule.window import ScheduledVisitWindowError
@@ -33,17 +33,19 @@ class NextAppointmentModelFormMixin:
         )
 
     def validate_suggested_date_with_future_appointments(self):
-        if self.suggested_date and self.related_visit.appointment.next.appt_status not in [
-            NEW_APPT,
-            SKIPPED_APPT,
-        ]:
+        if self.suggested_date and (
+            self.related_visit.appointment.next.related_visit
+            or has_keyed_metadata(self.related_visit.appointment.next)
+        ):
             if (
                 self.suggested_date
                 != to_local(self.related_visit.appointment.next.appt_datetime).date()
             ):
-                next_appt = self.related_visit.appointment.next
+                appointment = self.related_visit.appointment.next
                 date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
-                next_appt_date = to_local(next_appt.appt_datetime).date().strftime(date_format)
+                next_appt_date = (
+                    to_local(appointment.appt_datetime).date().strftime(date_format)
+                )
                 raise forms.ValidationError(
                     {
                         "appt_date": _(
@@ -52,18 +54,18 @@ class NextAppointmentModelFormMixin:
                         )
                         % {
                             "dt": next_appt_date,
-                            "visit_code": next_appt.visit_code,
+                            "visit_code": appointment.visit_code,
                         }
                     }
                 )
 
         if (
             self.suggested_date
-            and self.related_visit.appointment.next.appt_status not in [NEW_APPT, SKIPPED_APPT]
             and self.suggested_date
             > to_local(self.related_visit.appointment.next.appt_datetime).date()
+            and has_keyed_metadata(self.related_visit.appointment.next)
         ):
-            next_appt = self.related_visit.appointment.next
+            appointment = self.related_visit.appointment.next
             date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
             raise forms.ValidationError(
                 {
@@ -73,8 +75,8 @@ class NextAppointmentModelFormMixin:
                         "%(dt_str)s."
                     )
                     % {
-                        "visit_code": next_appt.visit_code,
-                        "dt_str": to_local(next_appt.appt_datetime)
+                        "visit_code": appointment.visit_code,
+                        "dt_str": to_local(appointment.appt_datetime)
                         .date()
                         .strftime(date_format),
                     }
