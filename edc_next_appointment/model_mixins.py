@@ -33,6 +33,8 @@ class NextAppointmentCrfModelMixin(models.Model):
         blank=False,
     )
 
+    # named this way to not conflict with property `visit_schedule`
+    # see also edc-crf
     visitschedule = models.ForeignKey(
         VisitSchedule,
         on_delete=PROTECT,
