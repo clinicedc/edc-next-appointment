@@ -14,6 +14,9 @@ from edc_visit_schedule.schedule.window import ScheduledVisitWindowError
 
 
 class NextAppointmentModelFormMixin:
+    appt_date_fld = "appt_date"
+    visit_code_fld = "visitschedule"
+
     def clean(self):
         cleaned_data = super().clean()
         self.validate_suggested_date_with_future_appointments()
@@ -21,15 +24,19 @@ class NextAppointmentModelFormMixin:
         return cleaned_data
 
     @property
+    def allow_create_interim(self) -> str:
+        return self.cleaned_data.get("allow_create_interim", False)
+
+    @property
     def suggested_date(self) -> date | None:
-        return self.cleaned_data.get("appt_date")
+        return self.cleaned_data.get(self.appt_date_fld)
 
     @property
     def suggested_visit_code(self) -> str | None:
         return getattr(
-            self.cleaned_data.get("visitschedule"),
+            self.cleaned_data.get(self.visit_code_fld),
             "visit_code",
-            self.cleaned_data.get("visitschedule"),
+            self.cleaned_data.get(self.visit_code_fld),
         )
 
     def validate_suggested_date_with_future_appointments(self):
@@ -48,7 +55,7 @@ class NextAppointmentModelFormMixin:
                 )
                 raise forms.ValidationError(
                     {
-                        "appt_date": _(
+                        self.appt_date_fld: _(
                             "Invalid. Next visit report already submitted. Expected "
                             "`%(dt)s`. See `%(visit_code)s`."
                         )
@@ -69,7 +76,7 @@ class NextAppointmentModelFormMixin:
             date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
             raise forms.ValidationError(
                 {
-                    "appt_date": _(
+                    self.appt_date_fld: _(
                         "Invalid. Expected a date before appointment "
                         "`%(visit_code)s` on "
                         "%(dt_str)s."
@@ -95,21 +102,10 @@ class NextAppointmentModelFormMixin:
                     raise_if_in_gap=False,
                 )
             except ScheduledVisitWindowError as e:
-                raise forms.ValidationError({"appt_date": str(e)})
+                raise forms.ValidationError({self.appt_date_fld: str(e)})
             if not appointment:
                 raise forms.ValidationError(
-                    {"appt_date": _("Invalid. Must be within the followup period.")}
-                )
-            elif appointment == subject_visit.appointment:
-                raise forms.ValidationError(
-                    {
-                        "appt_date": (
-                            _(
-                                "Invalid. Cannot be within window period "
-                                "of current appointment."
-                            )
-                        )
-                    }
+                    {self.appt_date_fld: _("Invalid. Must be within the followup period.")}
                 )
 
             if (
@@ -119,13 +115,36 @@ class NextAppointmentModelFormMixin:
                 date_format = convert_php_dateformat(settings.SHORT_DATE_FORMAT)
                 raise forms.ValidationError(
                     {
-                        "visitschedule": _(
+                        self.visit_code_fld: _(
                             "Expected %(visit_code)s using %(dt_str)s from above."
                         )
                         % {
                             "visit_code": appointment.visit_code,
                             "dt_str": suggested_date.strftime(date_format),
                         }
+                    }
+                )
+            if appointment == subject_visit.appointment:
+                if self.allow_create_interim:
+                    pass
+                else:
+                    raise forms.ValidationError(
+                        {
+                            self.appt_date_fld: (
+                                _(
+                                    "Invalid. Cannot be within window period "
+                                    "of the current appointment."
+                                )
+                            )
+                        }
+                    )
+            elif self.allow_create_interim:
+                raise forms.ValidationError(
+                    {
+                        "allow_create_interim": _(
+                            "Cannot override if date is not within window period "
+                            "of the current appointment."
+                        )
                     }
                 )
 

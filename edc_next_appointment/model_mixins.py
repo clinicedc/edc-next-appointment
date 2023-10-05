@@ -48,6 +48,15 @@ class NextAppointmentCrfModelMixin(models.Model):
         ),
     )
 
+    allow_create_interim = models.BooleanField(
+        verbose_name=_("Override date check?"),
+        default=False,
+        help_text=(
+            "Override date check to allow the EDC to create an interim appointment if the "
+            "date is within window period of the current appointment."
+        ),
+    )
+
     class Meta:
         abstract = True
         verbose_name = "Next Appointment"

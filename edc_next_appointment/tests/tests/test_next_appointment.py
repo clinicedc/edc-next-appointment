@@ -5,7 +5,7 @@ import time_machine
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.test import TestCase, override_settings, tag
+from django.test import TestCase, override_settings
 from edc_appointment.constants import SKIPPED_APPT
 from edc_appointment.models import Appointment
 from edc_constants.constants import NOT_APPLICABLE, PATIENT
@@ -74,7 +74,6 @@ class TestNextAppointment(TestCase):
         subject_visit_model_cls = get_related_visit_model_cls()
         subject_visit_model_cls.objects.create(appointment=appointment, reason=SCHEDULED)
 
-    @tag("1")
     @override_settings(
         EDC_APPOINTMENT_ALLOW_SKIPPED_APPT_USING={
             "next_appointment_app.nextappointment": ("appt_date", "visitschedule")
