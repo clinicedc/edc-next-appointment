@@ -12,7 +12,15 @@ class NextAppointmentModelAdminMixin:
         (None, {"fields": ("subject_visit", "report_datetime")}),
         (
             "Integrated Clinic",
-            {"fields": ("health_facility", "appt_date", "info_source", "visitschedule")},
+            {
+                "fields": (
+                    "info_source",
+                    "health_facility",
+                    "appt_date",
+                    "allow_create_interim",
+                    "visitschedule",
+                )
+            },
         ),
         crf_status_fieldset_tuple,
         audit_fieldset_tuple,
