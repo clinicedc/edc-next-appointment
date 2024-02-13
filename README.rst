@@ -38,8 +38,8 @@ For example:
 .. |pypi| image:: https://img.shields.io/pypi/v/edc-next-appointment.svg
     :target: https://pypi.python.org/pypi/edc-next-appointment
 
-.. |actions| image:: https://github.com/clinicedc/edc-next-appointment/workflows/build/badge.svg?branch=develop
-  :target: https://github.com/clinicedc/edc-next-appointment/actions?query=workflow:build
+.. |actions| image:: https://github.com/clinicedc/edc-next-appointment/actions/workflows/build.yml/badge.svg
+  :target: https://github.com/clinicedc/edc-next-appointment/actions/workflows/build.yml
 
 .. |codecov| image:: https://codecov.io/gh/clinicedc/edc-next-appointment/branch/develop/graph/badge.svg
   :target: https://codecov.io/gh/clinicedc/edc-next-appointment
